@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,30 +14,27 @@ interface Review {
   date: string;
 }
 
+const API_URL = 'https://functions.poehali.dev/ec54e918-a263-4161-8343-2886261858ce';
+
 const Index = () => {
-  const [reviews, setReviews] = useState<Review[]>([
-    {
-      id: '1',
-      nickname: 'Александра',
-      rating: 5,
-      text: 'Невероятный инструмент! MegaSchoolChat помог мне организовать обучение для целого класса. Рекомендую всем учителям!',
-      date: '2024-12-20'
-    },
-    {
-      id: '2',
-      nickname: 'Дмитрий',
-      rating: 4,
-      text: 'Отличная нейросеть для образования. Иногда бывают задержки, но в целом работает стабильно.',
-      date: '2024-12-18'
-    },
-    {
-      id: '3',
-      nickname: 'Мария',
-      rating: 5,
-      text: 'Просто WOW! Ученики в восторге, материал усваивается намного лучше. Спасибо разработчикам!',
-      date: '2024-12-15'
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadReviews();
+  }, []);
+
+  const loadReviews = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setReviews(data);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,18 +43,25 @@ const Index = () => {
     text: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newReview: Review = {
-      id: Date.now().toString(),
-      nickname: formData.nickname,
-      rating: formData.rating,
-      text: formData.text,
-      date: new Date().toISOString().split('T')[0]
-    };
-    setReviews([newReview, ...reviews]);
-    setFormData({ nickname: '', rating: 5, text: '' });
-    setIsDialogOpen(false);
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      if (response.ok) {
+        setFormData({ nickname: '', rating: 5, text: '' });
+        setIsDialogOpen(false);
+        loadReviews();
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+    }
   };
 
   const renderStars = (rating: number, interactive: boolean = false, onRate?: (rate: number) => void) => {
@@ -177,8 +181,18 @@ const Index = () => {
       </section>
 
       <section id="reviews" className="container mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reviews.map((review, index) => (
+        {loading ? (
+          <div className="text-center py-12">
+            <Icon name="Loader2" size={48} className="animate-spin text-primary mx-auto" />
+            <p className="mt-4 text-foreground/70">Загрузка отзывов...</p>
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-xl text-foreground/70">Пока нет отзывов. Будьте первым!</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {reviews.map((review, index) => (
             <Card
               key={review.id}
               className="overflow-hidden rounded-3xl border-2 hover:border-primary transition-all hover:shadow-2xl hover:-translate-y-2 animate-scale-in bg-white/90 backdrop-blur"
@@ -202,8 +216,9 @@ const Index = () => {
                 <p className="text-foreground/80 leading-relaxed">{review.text}</p>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section id="contacts" className="container mx-auto px-4 py-20 text-center">
@@ -221,16 +236,39 @@ const Index = () => {
                   rel="noopener noreferrer"
                   className="text-primary hover:underline"
                 >
-                  ai-school-tools--preview.poehali.dev
+                  Официальный сайт
+                </a>
+              </p>
+              <p className="flex items-center justify-center gap-3">
+                <Icon name="Info" size={24} className="text-primary" />
+                <a
+                  href="https://megachat-info-portal--preview.poehali.dev/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Информационный портал
                 </a>
               </p>
               <p className="flex items-center justify-center gap-3">
                 <Icon name="Mail" size={24} className="text-primary" />
-                <span className="text-foreground/70">contact@megaschoolchat.ru</span>
+                <a
+                  href="mailto:MegaSchoolChat@gmail.com"
+                  className="text-foreground/70 hover:text-primary transition-colors"
+                >
+                  MegaSchoolChat@gmail.com
+                </a>
               </p>
               <p className="flex items-center justify-center gap-3">
                 <Icon name="MessageCircle" size={24} className="text-primary" />
-                <span className="text-foreground/70">Телеграм: @megaschoolchat</span>
+                <a
+                  href="https://t.me/MegaSchoolChat16"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-foreground/70 hover:text-primary transition-colors"
+                >
+                  Telegram: @MegaSchoolChat16
+                </a>
               </p>
             </div>
           </CardContent>
